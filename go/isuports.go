@@ -1334,6 +1334,12 @@ type CompetitionRankingHandlerResult struct {
 	Ranks       []CompetitionRank `json:"ranks"`
 }
 
+type RankingScoreRow struct {
+	MaxRowNum int64  `db:"max_row_num"`
+	Score     int64  `db:"score"`
+	PlayerID  string `db:"player_id"`
+}
+
 // 参加者向けAPI
 // GET /api/player/competition/:competition_id/ranking
 // 大会ごとのランキングを取得する
@@ -1402,11 +1408,12 @@ func competitionRankingHandler(c echo.Context) error {
 		return fmt.Errorf("error flockByTenantID: %w", err)
 	}
 	defer fl.Close()
-	pss := []PlayerScoreRow{}
+
+	pss := []RankingScoreRow{}
 	if err := tenantDB.SelectContext(
 		ctx,
 		&pss,
-		"SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? ORDER BY row_num DESC",
+		"SELECT MAX(row_num) AS max_row_num, score, player_id FROM player_score WHERE tenant_id = ? AND competition_id = ? GROUP BY player_id ORDER BY score",
 		tenant.ID,
 		competitionID,
 	); err != nil {
@@ -1445,7 +1452,6 @@ func competitionRankingHandler(c echo.Context) error {
 
 	ranks := make([]CompetitionRank, 0, len(pss))
 	scoredPlayerSet := make(map[string]struct{}, len(pss))
-	// TODO: N+1
 	for _, ps := range pss {
 		// player_scoreが同一player_id内ではrow_numの降順でソートされているので
 		// 現れたのが2回目以降のplayer_idはより大きいrow_numでスコアが出ているとみなせる
@@ -1465,7 +1471,7 @@ func competitionRankingHandler(c echo.Context) error {
 			Score:             ps.Score,
 			PlayerID:          p.ID,
 			PlayerDisplayName: p.DisplayName,
-			RowNum:            ps.RowNum,
+			RowNum:            ps.MaxRowNum,
 		})
 	}
 	sort.Slice(ranks, func(i, j int) bool {
