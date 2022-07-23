@@ -13,7 +13,26 @@ echo .dump | sqlite3 "$1" | \
   sed 's/^);/);\n/g' | \
   sed -z 's/;\nINSERT INTO competition VALUES/,/g' | \
   sed -z 's/;\nINSERT INTO player VALUES/,/g' | \
-  sed -z 's/;\nINSERT INTO player_score VALUES/,/g'
+  sed -z 's/;\nINSERT INTO player_score VALUES/,/g'# | \
+  # sed 's/BEGIN;//g' | \
+  # sed 's/COMMIT;//g' | \
+  # sed -z 's/CREATE TABLE IF NOT EXISTS.+?\n\);//g'
 
 # for ((i = 0; i<140; i++)); do ./sqlite3-to-sql ../../initial_data/$i.db > ../../initial_data/$i.sql; echo $i; done
 # で実行した
+
+# ----------------------
+
+# cat *.sql > all.sql
+# 以下をall.sqlに先頭に追加
+# ```
+# SET autocommit=0;
+# SET unique_checks=0;
+# SET foreign_key_checks=0;
+# ```
+# 以下をall.sqlを末尾に追加
+# ```
+# SET autocommit=0;
+# SET unique_checks=0;
+# SET foreign_key_checks=0;
+# ```

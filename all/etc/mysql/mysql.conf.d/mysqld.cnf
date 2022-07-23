@@ -76,7 +76,3 @@ log_error = /var/log/mysql/error.log
 max_binlog_size   = 100M
 # binlog_do_db		= include_database_name
 # binlog_ignore_db	= include_database_name
-wait_timeout = 86400
-max_allowed_packet = 1G
-net_read_timeout = 86400
-innodb_buffer_pool_size = 1G
