@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	cmap "github.com/orcaman/concurrent-map/v2"
 	"io"
 	"net/http"
 	"os"
@@ -394,17 +395,27 @@ func retrievePlayer(ctx context.Context, tenantDB dbOrTx, id string) (*PlayerRow
 	return &p, nil
 }
 
+// Cache[tenantID + ID]isDisqualified
+var localPlayerCacheForAuth = cmap.New[bool]()
+
 // 参加者を認可する
 // 参加者向けAPIで呼ばれる
-func authorizePlayer(ctx context.Context, tenantDB dbOrTx, id string) error {
-	player, err := retrievePlayer(ctx, tenantDB, id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return echo.NewHTTPError(http.StatusUnauthorized, "player not found")
+func authorizePlayer(ctx context.Context, tenantDB dbOrTx, tenantID int64, id string) error {
+	isDisqualified, ok := localPlayerCacheForAuth.Get(string(tenantID) + id)
+	if !ok {
+		player, err := retrievePlayer(ctx, tenantDB, id)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return echo.NewHTTPError(http.StatusUnauthorized, "player not found")
+			}
+			return fmt.Errorf("error retrievePlayer from viewer: %w", err)
 		}
-		return fmt.Errorf("error retrievePlayer from viewer: %w", err)
+		localPlayerCacheForAuth.Set(string(tenantID)+id, player.IsDisqualified)
+		if player.IsDisqualified {
+			return echo.NewHTTPError(http.StatusForbidden, "player is disqualified")
+		}
 	}
-	if player.IsDisqualified {
+	if isDisqualified {
 		return echo.NewHTTPError(http.StatusForbidden, "player is disqualified")
 	}
 	return nil
@@ -864,6 +875,9 @@ func playersAddHandler(c echo.Context) error {
 	res := PlayersAddHandlerResult{
 		Players: pds,
 	}
+
+	localPlayerCacheForAuth.Set(string(v.tenantID)+v.playerID, false)
+
 	return c.JSON(http.StatusOK, SuccessResult{Status: true, Data: res})
 }
 
@@ -910,6 +924,8 @@ func playerDisqualifiedHandler(c echo.Context) error {
 		}
 		return fmt.Errorf("error retrievePlayer: %w", err)
 	}
+
+	localPlayerCacheForAuth.Set(string(v.tenantID)+v.playerID, true)
 
 	res := PlayerDisqualifiedHandlerResult{
 		Player: PlayerDetail{
@@ -1251,7 +1267,7 @@ func playerHandler(c echo.Context) error {
 	}
 	defer tenantDB.Close()
 
-	if err := authorizePlayer(ctx, tenantDB, v.playerID); err != nil {
+	if err := authorizePlayer(ctx, tenantDB, v.tenantID, v.playerID); err != nil {
 		return err
 	}
 
@@ -1364,7 +1380,7 @@ func competitionRankingHandler(c echo.Context) error {
 	}
 	defer tenantDB.Close()
 
-	if err := authorizePlayer(ctx, tenantDB, v.playerID); err != nil {
+	if err := authorizePlayer(ctx, tenantDB, v.tenantID, v.playerID); err != nil {
 		return err
 	}
 
@@ -1520,7 +1536,7 @@ type CompetitionsHandlerResult struct {
 // GET /api/player/competitions
 // 大会の一覧を取得する
 func playerCompetitionsHandler(c echo.Context) error {
-	ctx := context.Background()
+	//ctx := context.Background()
 
 	v, err := parseViewer(c)
 	if err != nil {
@@ -1536,7 +1552,8 @@ func playerCompetitionsHandler(c echo.Context) error {
 	}
 	defer tenantDB.Close()
 
-	if err := authorizePlayer(ctx, tenantDB, v.playerID); err != nil {
+	ctx := context.Background()
+	if err := authorizePlayer(ctx, tenantDB, v.tenantID, v.playerID); err != nil {
 		return err
 	}
 	return competitionsHandler(c, v, tenantDB)
