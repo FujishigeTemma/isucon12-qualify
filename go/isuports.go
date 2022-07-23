@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	// "syscall"
 	"time"
@@ -677,8 +678,10 @@ func tenantsBillingHandler(c echo.Context) error {
 
 	wg, wgCtx := errgroup.WithContext(ctx)
 
-	tenantBillings := make([]TenantWithBilling, 0, len(ts))
-	for _, _t := range ts {
+	m := sync.Mutex{}
+	tenantBillings := make([]TenantWithBilling, len(ts))
+	for _i, _t := range ts {
+		i := _i
 		t := _t
 		wg.Go(func() error {
 			tb := TenantWithBilling{
@@ -707,7 +710,9 @@ func tenantsBillingHandler(c echo.Context) error {
 				}
 				tb.BillingYen += report.BillingYen
 			}
-			tenantBillings = append(tenantBillings, tb)
+			m.Lock()
+			tenantBillings[i] = tb
+			m.Unlock()
 			return nil
 		})
 	}
