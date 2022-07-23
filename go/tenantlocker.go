@@ -8,18 +8,18 @@ import (
 )
 
 type TenantLocker struct {
-	m cmap.ConcurrentMap[sync.RWMutex]
+	m cmap.ConcurrentMap[*sync.RWMutex]
 }
 
 func NewTenantLocker() *TenantLocker {
 	return &TenantLocker{
-		m: cmap.New[sync.RWMutex](),
+		m: cmap.New[*sync.RWMutex](),
 	}
 }
 
 func (l *TenantLocker) Lock(tenantId int64) {
 	k := int64S(tenantId)
-	l.m.SetIfAbsent(k, sync.RWMutex{})
+	l.m.SetIfAbsent(k, &sync.RWMutex{})
 	v, _ := l.m.Get(k)
 	v.Lock()
 }
@@ -32,7 +32,7 @@ func (l *TenantLocker) Unlock(tenantId int64) {
 
 func (l *TenantLocker) RLock(tenantId int64) {
 	k := int64S(tenantId)
-	l.m.SetIfAbsent(k, sync.RWMutex{})
+	l.m.SetIfAbsent(k, &sync.RWMutex{})
 	v, _ := l.m.Get(k)
 	v.RLock()
 }
