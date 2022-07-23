@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
 	// "syscall"
 	"time"
 
@@ -195,6 +196,9 @@ func Run() {
 	adminDB.SetConnMaxLifetime(0) // 一応セット
 	adminDB.SetConnMaxIdleTime(0) // 一応セット go1.15以上
 	defer adminDB.Close()
+
+	waitDB(adminDB)
+	go pollDB(adminDB)
 
 	http.DefaultTransport.(*http.Transport).MaxIdleConns = 0           // 無制限
 	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 1024 // 0にすると2になっちゃう
@@ -1695,4 +1699,28 @@ func initializeHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, SuccessResult{Status: true, Data: res})
+}
+
+func waitDB(db *sqlx.DB) {
+	for {
+		err := db.Ping()
+		if err == nil {
+			return
+		}
+
+		log.Printf("Failed to ping DB: %s", err)
+		log.Printf("Retrying...\n")
+		time.Sleep(time.Second)
+	}
+}
+
+func pollDB(db *sqlx.DB) {
+	for {
+		err := db.Ping()
+		if err != nil {
+			log.Printf("Failed to ping DB: %s", err)
+		}
+
+		time.Sleep(time.Second)
+	}
 }
