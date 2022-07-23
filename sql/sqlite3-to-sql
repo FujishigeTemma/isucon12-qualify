@@ -9,7 +9,7 @@ if [ "$1" = "" ]; then
 fi
 
 echo .dump | sqlite3 "$1" | \
-	perl -pE 's/PRAGMA foreign_keys=OFF;//; s/^CREATE TABLE /CREATE TABLE IF NOT EXISTS /; s/BEGIN TRANSACTION/BEGIN/g'
+	perl -pE 's/PRAGMA foreign_keys=OFF;//; s/^CREATE TABLE /CREATE TABLE IF NOT EXISTS /; s/BEGIN TRANSACTION/BEGIN/g' | \
   sed 's/^);/);\n/g' | \
   sed -z 's/;\nINSERT INTO competition VALUES/,/g' | \
   sed -z 's/;\nINSERT INTO player VALUES/,/g' | \
