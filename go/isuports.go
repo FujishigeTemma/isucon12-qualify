@@ -576,7 +576,7 @@ func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID i
 
 	// player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
 	tenantLocker.RLock(tenantID)
-	defer tenantLocker.Unlock(tenantID)
+	defer tenantLocker.RUnlock(tenantID)
 
 	// スコアを登録した参加者のIDを取得する
 	scoredPlayerIDs := []string{}
