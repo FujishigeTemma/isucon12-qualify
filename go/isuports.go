@@ -32,8 +32,8 @@ import (
 )
 
 const (
-	tenantDBSchemaFilePath = "../sql/tenant/10_schema.sql"
-	initializeScript       = "../sql/init.sh"
+	tenantDBSchemaFilePath = "./sql/tenant/10_schema.sql"
+	initializeScript       = "./sql/init.sh"
 	cookieName             = "isuports_session"
 
 	RoleAdmin     = "admin"
@@ -75,7 +75,7 @@ func connectAdminDB() (*sqlx.DB, error) {
 
 // テナントDBのパスを返す
 func tenantDBPath(id int64) string {
-	tenantDBDir := getEnv("ISUCON_TENANT_DB_DIR", "../tenant_db")
+	tenantDBDir := getEnv("ISUCON_TENANT_DB_DIR", "./tenant_db")
 	return filepath.Join(tenantDBDir, fmt.Sprintf("%d.db", id))
 }
 
@@ -199,10 +199,10 @@ func Run() {
 	adminDB.SetConnMaxIdleTime(0) // 一応セット go1.15以上
 	defer adminDB.Close()
 
-	http.DefaultTransport.(*http.Transport).MaxIdleConns = 0 // 無制限
+	http.DefaultTransport.(*http.Transport).MaxIdleConns = 0           // 無制限
 	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 1024 // 0にすると2になっちゃう
-	http.DefaultTransport.(*http.Transport).ForceAttemptHTTP2 = true // go1.13以上
-	http.DefaultClient.Timeout = 5 * time.Second // 問題の切り分け用
+	http.DefaultTransport.(*http.Transport).ForceAttemptHTTP2 = true   // go1.13以上
+	http.DefaultClient.Timeout = 5 * time.Second                       // 問題の切り分け用
 
 	port := getEnv("SERVER_APP_PORT", "3000")
 	e.Logger.Infof("starting isuports server on : %s ...", port)
@@ -254,7 +254,7 @@ func parseViewer(c echo.Context) (*Viewer, error) {
 	}
 	tokenStr := cookie.Value
 
-	keyFilename := getEnv("ISUCON_JWT_KEY_FILE", "../public.pem")
+	keyFilename := getEnv("ISUCON_JWT_KEY_FILE", "./public.pem")
 	keysrc, err := os.ReadFile(keyFilename)
 	if err != nil {
 		return nil, fmt.Errorf("error os.ReadFile: keyFilename=%s: %w", keyFilename, err)
@@ -435,7 +435,7 @@ type PlayerScoreRow struct {
 
 // 排他ロックのためのファイル名を生成する
 func lockFilePath(id int64) string {
-	tenantDBDir := getEnv("ISUCON_TENANT_DB_DIR", "../tenant_db")
+	tenantDBDir := getEnv("ISUCON_TENANT_DB_DIR", "./tenant_db")
 	return filepath.Join(tenantDBDir, fmt.Sprintf("%d.lock", id))
 }
 

@@ -1,0 +1,16 @@
+[Unit]
+Description=isucon12 qualify webapp
+After=network.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+User=isucon
+Group=isucon
+WorkingDirectory=/home/isucon/webapp
+EnvironmentFile=/home/isucon/webapp/.env
+ExecStart=/home/isucon/webapp/go/app
+LimitNOFILE=65535
+Restart=always
