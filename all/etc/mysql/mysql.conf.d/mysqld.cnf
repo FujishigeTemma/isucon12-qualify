@@ -28,8 +28,8 @@ user		= mysql
 #
 # Instead of skip-networking the default is now to listen only on
 # localhost which is more compatible and is not less secure.
-bind-address		= 127.0.0.1
-mysqlx-bind-address	= 127.0.0.1
+# bind-address		= 127.0.0.1
+# mysqlx-bind-address	= 127.0.0.1
 #
 # * Fine Tuning
 #
@@ -62,9 +62,9 @@ myisam-recover-options  = BACKUP
 log_error = /var/log/mysql/error.log
 #
 # Here you can see queries with especially long duration
-# slow_query_log		= 1
-# slow_query_log_file	= /var/log/mysql/mysql-slow.log
-# long_query_time = 2
+slow_query_log		= 1
+slow_query_log_file	= /var/log/mysql/mysql-slow.log
+long_query_time = 0
 # log-queries-not-using-indexes
 #
 # The following can be used as easy to replay backup logs or for replication.
@@ -73,6 +73,40 @@ log_error = /var/log/mysql/error.log
 # server-id		= 1
 # log_bin			= /var/log/mysql/mysql-bin.log
 # binlog_expire_logs_seconds	= 2592000
-max_binlog_size   = 100M
+# max_binlog_size   = 100M
 # binlog_do_db		= include_database_name
 # binlog_ignore_db	= include_database_name
+
+max_connections = 1024
+
+query_cache_type = ON
+
+# innoDB全体で一つ生成されるグローバルバッファ(別鯖なら搭載メモリの80%、多ければ多いほど)
+innodb_buffer_pool_size = 1G
+
+# innoDBの更新ログを保持するメモリ
+innodb_log_buffer_size = 16M
+
+# innodb_log_fileがいっぱいになると、メモリ上のinnodb_buffer_poolの中の更新された部分のデータを、ディスク上のInnoDBのデータファイルに書き出すしくみになっている。
+innodb_log_file_size = 128M
+
+# ORDER BYやGROUP BYのときに使われるメモリ上の領域
+innodb_sort_buffer_size = 64M
+
+# 1に設定するとトランザクション単位でログを出力するが2を指定すると1秒間に1回ログを吐く。0だとログも1秒に1回。
+innodb_flush_log_at_trx_commit = 0
+
+# バッファプールからフラッシュされたページを、InnoDBデータファイルの適切な位置に書き込む前に、InnoDBが書き込む記憶領域。
+innodb_doublewrite = OFF
+
+# データファイル、ログファイルの読み書き方式を指定する
+innodb_flush_method = O_DIRECT
+
+# ログの非同期flash
+innodb_flush_log_at_trx_commit = 2
+
+# バイナリログの無効化
+disable-log-bin = 1
+
+# (from MySQL 8.0.22) 
+# innodb_log_writer_threads = OFF
