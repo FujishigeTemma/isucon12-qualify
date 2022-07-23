@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -ex
 cd `dirname $0`
@@ -18,4 +18,12 @@ mysql -u"$ISUCON_DB_USER" \
 
 # SQLiteのデータベースを初期化
 rm -f ../tenant_db/*.db
-cp -r ../../initial_data/*.db ../tenant_db/
+
+for ((i=0 ; i < 140 ; i++)); do
+	mysql --max_allowed_packet=256M --connect-timeout=180 -u"$ISUCON_DB_USER" \
+			-p"$ISUCON_DB_PASSWORD" \
+			--host "$ISUCON_DB_HOST" \
+			--port "$ISUCON_DB_PORT" \
+			"$ISUCON_DB_NAME" < ../../initial_data/$i.sql
+	echo $i
+done
