@@ -15,5 +15,5 @@ echo .dump | sqlite3 "$1" | \
   sed -z 's/;\nINSERT INTO player VALUES/,/g' | \
   sed -z 's/;\nINSERT INTO player_score VALUES/,/g'
 
-# for ((i = 0; i<140; i++)); do ./sqlite3-to-sql ../../initial_data/$i.db > ../../initial_data/$i.sql; done
+# for ((i = 0; i<140; i++)); do ./sqlite3-to-sql ../../initial_data/$i.db > ../../initial_data/$i.sql; echo $i; done
 # で実行した
