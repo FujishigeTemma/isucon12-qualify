@@ -81,8 +81,9 @@ func tenantDBPath(id int64) string {
 
 // テナントDBに接続する
 func connectToTenantDB(id int64) (*sqlx.DB, error) {
-	p := tenantDBPath(id)
-	db, err := sqlx.Open(sqliteDriverName, fmt.Sprintf("file:%s?mode=rw", p))
+	// p := tenantDBPath(id)
+	// db, err := sqlx.Open(sqliteDriverName, fmt.Sprintf("file:%s?mode=rw", p))
+	db, err := sqlx.Open(sqliteDriverName, fmt.Sprintf("file::memory:?mode=rw"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open tenant DB: %w", err)
 	}
@@ -199,10 +200,10 @@ func Run() {
 	adminDB.SetConnMaxIdleTime(0) // 一応セット go1.15以上
 	defer adminDB.Close()
 
-	http.DefaultTransport.(*http.Transport).MaxIdleConns = 0 // 無制限
+	http.DefaultTransport.(*http.Transport).MaxIdleConns = 0           // 無制限
 	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 1024 // 0にすると2になっちゃう
-	http.DefaultTransport.(*http.Transport).ForceAttemptHTTP2 = true // go1.13以上
-	http.DefaultClient.Timeout = 5 * time.Second // 問題の切り分け用
+	http.DefaultTransport.(*http.Transport).ForceAttemptHTTP2 = true   // go1.13以上
+	http.DefaultClient.Timeout = 5 * time.Second                       // 問題の切り分け用
 
 	port := getEnv("SERVER_APP_PORT", "3000")
 	e.Logger.Infof("starting isuports server on : %s ...", port)
