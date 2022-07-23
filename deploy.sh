@@ -10,8 +10,9 @@ function deploy () {
     sudo cp $src $dest
   done
 
-  (cd /home/isucon/webapp/go && go build -o app)
+  (cd /home/isucon/webapp/go && go build -o app cmd/isuports/main.go)
 
+  sudo systemctl daemon-reload
   sudo systemctl restart nginx
   sudo systemctl restart mysql
   sudo systemctl restart isuports.service
