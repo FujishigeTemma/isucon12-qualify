@@ -39,7 +39,6 @@ func (l *TenantLocker) RLock(tenantId int64) {
 
 func (l *TenantLocker) RUnlock(tenantId int64) {
 	k := int64S(tenantId)
-	l.m.SetIfAbsent(k, sync.RWMutex{})
 	v, _ := l.m.Get(k)
 	v.RUnlock()
 }
