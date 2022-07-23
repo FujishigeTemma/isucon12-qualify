@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	// "syscall"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -32,8 +33,8 @@ import (
 )
 
 const (
-	tenantDBSchemaFilePath = "../sql/tenant/10_schema.sql"
-	initializeScript       = "../sql/init.sh"
+	tenantDBSchemaFilePath = "./sql/tenant/10_schema.sql"
+	initializeScript       = "./sql/init.sh"
 	cookieName             = "isuports_session"
 
 	RoleAdmin     = "admin"
@@ -75,7 +76,7 @@ func connectAdminDB() (*sqlx.DB, error) {
 
 // テナントDBのパスを返す
 func tenantDBPath(id int64) string {
-	tenantDBDir := getEnv("ISUCON_TENANT_DB_DIR", "../tenant_db")
+	tenantDBDir := getEnv("ISUCON_TENANT_DB_DIR", "./tenant_db")
 	return filepath.Join(tenantDBDir, fmt.Sprintf("%d.db", id))
 }
 
@@ -213,6 +214,11 @@ func Run() {
 // エラー処理関数
 func errorResponseHandler(err error, c echo.Context) {
 	c.Logger().Errorf("error at %s: %s", c.Path(), err.Error())
+	// if errors.Is(err, syscall.EPIPE); err != nil {
+	// 	// broken pipeのとき
+	// 	c.NoContent(http.StatusRequestTimeout)
+	// 	return
+	// }
 	var he *echo.HTTPError
 	if errors.As(err, &he) {
 		c.JSON(he.Code, FailureResult{
@@ -254,7 +260,7 @@ func parseViewer(c echo.Context) (*Viewer, error) {
 	}
 	tokenStr := cookie.Value
 
-	keyFilename := getEnv("ISUCON_JWT_KEY_FILE", "../public.pem")
+	keyFilename := getEnv("ISUCON_JWT_KEY_FILE", "./public.pem")
 	keysrc, err := os.ReadFile(keyFilename)
 	if err != nil {
 		return nil, fmt.Errorf("error os.ReadFile: keyFilename=%s: %w", keyFilename, err)
@@ -435,7 +441,7 @@ type PlayerScoreRow struct {
 
 // 排他ロックのためのファイル名を生成する
 func lockFilePath(id int64) string {
-	tenantDBDir := getEnv("ISUCON_TENANT_DB_DIR", "../tenant_db")
+	tenantDBDir := getEnv("ISUCON_TENANT_DB_DIR", "./tenant_db")
 	return filepath.Join(tenantDBDir, fmt.Sprintf("%d.lock", id))
 }
 
@@ -1199,6 +1205,11 @@ type PlayerHandlerResult struct {
 	Scores []PlayerScoreDetail `json:"scores"`
 }
 
+type PlayerHandlerScoreRow struct {
+	CompetitionID string `db:"competition_id"`
+	MaxScore      int64  `db:"max_score"`
+}
+
 // 参加者向けAPI
 // GET /api/player/player/:player_id
 // 参加者の詳細情報を取得する
@@ -1250,38 +1261,36 @@ func playerHandler(c echo.Context) error {
 		return fmt.Errorf("error flockByTenantID: %w", err)
 	}
 	defer fl.Close()
-	pss := make([]PlayerScoreRow, 0, len(cs))
-	// TODO: N+1
-	for _, c := range cs {
-		ps := PlayerScoreRow{}
-		if err := tenantDB.GetContext(
-			ctx,
-			&ps,
-			// 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
-			"SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? ORDER BY row_num DESC LIMIT 1",
-			v.tenantID,
-			c.ID,
-			p.ID,
-		); err != nil {
-			// 行がない = スコアが記録されてない
-			if errors.Is(err, sql.ErrNoRows) {
-				continue
-			}
-			return fmt.Errorf("error Select player_score: tenantID=%d, competitionID=%s, playerID=%s, %w", v.tenantID, c.ID, p.ID, err)
-		}
-		pss = append(pss, ps)
+
+	pss := []PlayerHandlerScoreRow{}
+	if err := tenantDB.SelectContext(
+		ctx,
+		&pss,
+		"SELECT competition_id, MAX(score) AS max_score FROM player_score WHERE tenant_id = ? AND player_id = ? GROUP BY competition_id",
+		v.tenantID,
+		p.ID,
+	); err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("error Select player_score: tenantID=%d, player_id=%s, %w", v.tenantID, p.ID, err)
 	}
 
-	psds := make([]PlayerScoreDetail, 0, len(pss))
-	// TODO: N+1
-	for _, ps := range pss {
-		comp, err := retrieveCompetition(ctx, tenantDB, ps.CompetitionID)
-		if err != nil {
-			return fmt.Errorf("error retrieveCompetition: %w", err)
+	psds := []PlayerScoreDetail{}
+	for i := range cs {
+		isTargetCompe := false
+		targetPS := -1
+		for j := range pss {
+			if cs[i].ID == pss[j].CompetitionID {
+				isTargetCompe = true
+				targetPS = j
+				break
+			}
 		}
+		if !isTargetCompe {
+			continue
+		}
+
 		psds = append(psds, PlayerScoreDetail{
-			CompetitionTitle: comp.Title,
-			Score:            ps.Score,
+			CompetitionTitle: cs[i].Title,
+			Score:            pss[targetPS].MaxScore,
 		})
 	}
 
