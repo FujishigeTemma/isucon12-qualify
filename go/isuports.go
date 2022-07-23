@@ -1142,11 +1142,13 @@ func competitionScoreHandler(c echo.Context) error {
 		"INSERT INTO player_score (id, tenant_id, player_id, competition_id, score, row_num, created_at, updated_at) VALUES (:id, :tenant_id, :player_id, :competition_id, :score, :row_num, :created_at, :updated_at)",
 		playerScoreRows,
 	); err != nil {
-		ps := playerScoreRows[0]
-		return fmt.Errorf(
-			"error Insert player_score: id=%s, tenant_id=%d, playerID=%s, competitionID=%s, score=%d, rowNum=%d, createdAt=%d, updatedAt=%d, %w",
-			ps.ID, ps.TenantID, ps.PlayerID, ps.CompetitionID, ps.Score, ps.RowNum, ps.CreatedAt, ps.UpdatedAt, err,
-		)
+		if len(playerScoreRows) != 0 {
+			ps := playerScoreRows[0]
+			return fmt.Errorf(
+				"error Insert player_score: id=%s, tenant_id=%d, playerID=%s, competitionID=%s, score=%d, rowNum=%d, createdAt=%d, updatedAt=%d, %w",
+				ps.ID, ps.TenantID, ps.PlayerID, ps.CompetitionID, ps.Score, ps.RowNum, ps.CreatedAt, ps.UpdatedAt, err,
+			)
+		}
 	}
 
 	return c.JSON(http.StatusOK, SuccessResult{
@@ -1410,6 +1412,37 @@ func competitionRankingHandler(c echo.Context) error {
 	); err != nil {
 		return fmt.Errorf("error Select player_score: tenantID=%d, competitionID=%s, %w", tenant.ID, competitionID, err)
 	}
+
+	playerIDs := []string{}
+	playerSet := make(map[string]struct{}, len(pss))
+	for i := range pss {
+		if _, ok := playerSet[pss[i].PlayerID]; ok {
+			continue
+		}
+		playerSet[pss[i].PlayerID] = struct{}{}
+
+		playerIDs = append(playerIDs, pss[i].PlayerID)
+	}
+
+	prs := []PlayerRow{}
+	if len(playerIDs) != 0 {
+		selectPlayerSql := `SELECT * FROM player WHERE id IN (?)`
+
+		selectPlayerSql, params, err := sqlx.In(selectPlayerSql, playerIDs)
+		if err != nil {
+			return fmt.Errorf("error Select player in err: %v", err)
+		}
+
+		if err := tenantDB.SelectContext(
+			ctx,
+			&prs,
+			selectPlayerSql,
+			params...,
+		); err != nil {
+			return fmt.Errorf("error Select player in: selectPlayerSql=%v, params=%v, %w", selectPlayerSql, params, err)
+		}
+	}
+
 	ranks := make([]CompetitionRank, 0, len(pss))
 	scoredPlayerSet := make(map[string]struct{}, len(pss))
 	// TODO: N+1
@@ -1420,9 +1453,13 @@ func competitionRankingHandler(c echo.Context) error {
 			continue
 		}
 		scoredPlayerSet[ps.PlayerID] = struct{}{}
-		p, err := retrievePlayer(ctx, tenantDB, ps.PlayerID)
-		if err != nil {
-			return fmt.Errorf("error retrievePlayer: %w", err)
+
+		var p PlayerRow
+		for prIndex := range prs {
+			if prs[prIndex].ID == ps.PlayerID {
+				p = prs[prIndex]
+				break
+			}
 		}
 		ranks = append(ranks, CompetitionRank{
 			Score:             ps.Score,
