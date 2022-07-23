@@ -1413,21 +1413,23 @@ func competitionRankingHandler(c echo.Context) error {
 		playerIDs = append(playerIDs, pss[i].PlayerID)
 	}
 
-	selectPlayerSql := `SELECT * FROM player WHERE id IN (?)`
-
-	selectPlayerSql, params, err := sqlx.In(selectPlayerSql, playerIDs)
-	if err != nil {
-		return fmt.Errorf("error Select player in err: %v", err)
-	}
-
 	prs := []PlayerRow{}
-	if err := tenantDB.SelectContext(
-		ctx,
-		&prs,
-		selectPlayerSql,
-		params...,
-	); err != nil {
-		return fmt.Errorf("error Select player in: selectPlayerSql=%v, params=%v, %w", selectPlayerSql, params, err)
+	if len(playerIDs) != 0 {
+		selectPlayerSql := `SELECT * FROM player WHERE id IN (?)`
+
+		selectPlayerSql, params, err := sqlx.In(selectPlayerSql, playerIDs)
+		if err != nil {
+			return fmt.Errorf("error Select player in err: %v", err)
+		}
+
+		if err := tenantDB.SelectContext(
+			ctx,
+			&prs,
+			selectPlayerSql,
+			params...,
+		); err != nil {
+			return fmt.Errorf("error Select player in: selectPlayerSql=%v, params=%v, %w", selectPlayerSql, params, err)
+		}
 	}
 
 	ranks := make([]CompetitionRank, 0, len(pss))
