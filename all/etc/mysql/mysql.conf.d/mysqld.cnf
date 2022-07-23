@@ -79,7 +79,8 @@ long_query_time = 0
 
 max_connections = 1024
 
-query_cache_type = ON
+# (Until MySQL 5.7)
+# query_cache_type = ON
 
 # innoDB全体で一つ生成されるグローバルバッファ(別鯖なら搭載メモリの80%、多ければ多いほど)
 innodb_buffer_pool_size = 1G
@@ -109,4 +110,4 @@ innodb_flush_log_at_trx_commit = 2
 disable-log-bin = 1
 
 # (from MySQL 8.0.22) 
-# innodb_log_writer_threads = OFF
+innodb_log_writer_threads = OFF
