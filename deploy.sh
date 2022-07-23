@@ -12,7 +12,7 @@ function deploy () {
 
   sudo systemctl restart nginx
   sudo systemctl restart mysql
-  sudo systemctl restart isucon.go
+  sudo systemctl restart isuports.go
 
   sudo sysctl -p /etc/sysctl.d/99-isucon.conf
   
