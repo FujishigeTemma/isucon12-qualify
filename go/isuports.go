@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
+	// "syscall"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -214,11 +214,11 @@ func Run() {
 // エラー処理関数
 func errorResponseHandler(err error, c echo.Context) {
 	c.Logger().Errorf("error at %s: %s", c.Path(), err.Error())
-	if errors.Is(err, syscall.EPIPE); err != nil {
-		// broken pipeのとき
-		c.NoContent(http.StatusRequestTimeout)
-		return
-	}
+	// if errors.Is(err, syscall.EPIPE); err != nil {
+	// 	// broken pipeのとき
+	// 	c.NoContent(http.StatusRequestTimeout)
+	// 	return
+	// }
 	var he *echo.HTTPError
 	if errors.As(err, &he) {
 		c.JSON(he.Code, FailureResult{
