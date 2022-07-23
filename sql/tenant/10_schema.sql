@@ -30,3 +30,5 @@ CREATE TABLE player_score (
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 );
+
+CREATE INDEX tenant_id_player_id_idx on player_score(tenant_id, player_id);
