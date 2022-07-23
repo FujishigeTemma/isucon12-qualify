@@ -16,6 +16,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+
 	// "syscall"
 	"time"
 
@@ -27,6 +29,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/kaz/pprotein/integration/standalone"
 )
@@ -673,9 +676,14 @@ func tenantsBillingHandler(c echo.Context) error {
 		return fmt.Errorf("error Select tenant: %w", err)
 	}
 
-	tenantBillings := make([]TenantWithBilling, 0, len(ts))
-	for _, t := range ts {
-		err := func(t TenantRow) error {
+	wg, wgCtx := errgroup.WithContext(ctx)
+
+	m := sync.Mutex{}
+	tenantBillings := make([]TenantWithBilling, len(ts))
+	for _i, _t := range ts {
+		i := _i
+		t := _t
+		wg.Go(func() error {
 			tb := TenantWithBilling{
 				ID:          strconv.FormatInt(t.ID, 10),
 				Name:        t.Name,
@@ -688,7 +696,7 @@ func tenantsBillingHandler(c echo.Context) error {
 			defer tenantDB.Close()
 			cs := []CompetitionRow{}
 			if err := tenantDB.SelectContext(
-				ctx,
+				wgCtx,
 				&cs,
 				"SELECT * FROM competition WHERE tenant_id=?",
 				t.ID,
@@ -696,19 +704,22 @@ func tenantsBillingHandler(c echo.Context) error {
 				return fmt.Errorf("failed to Select competition: %w", err)
 			}
 			for _, comp := range cs {
-				report, err := billingReportByCompetition(ctx, tenantDB, t.ID, comp)
+				report, err := billingReportByCompetition(wgCtx, tenantDB, t.ID, comp)
 				if err != nil {
 					return fmt.Errorf("failed to billingReportByCompetition: %w", err)
 				}
 				tb.BillingYen += report.BillingYen
 			}
-			tenantBillings = append(tenantBillings, tb)
+			m.Lock()
+			tenantBillings[i] = tb
+			m.Unlock()
 			return nil
-		}(t)
-		if err != nil {
-			return err
-		}
+		})
 	}
+	if err := wg.Wait(); err != nil {
+		return err
+	}
+
 	return c.JSON(http.StatusOK, SuccessResult{
 		Status: true,
 		Data: TenantsBillingHandlerResult{
