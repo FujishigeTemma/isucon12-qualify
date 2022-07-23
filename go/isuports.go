@@ -1268,7 +1268,7 @@ func playerHandler(c echo.Context) error {
 	}
 	defer tenantDB.Close()
 
-	if err := authorizePlayer(v.tenantID, v.playerID); err != nil {
+	if err := authorizePlayer(ctx, tenantDB, v.tenantID, v.playerID); err != nil {
 		return err
 	}
 
@@ -1381,7 +1381,7 @@ func competitionRankingHandler(c echo.Context) error {
 	}
 	defer tenantDB.Close()
 
-	if err := authorizePlayer(v.tenantID, v.playerID); err != nil {
+	if err := authorizePlayer(ctx, tenantDB, v.tenantID, v.playerID); err != nil {
 		return err
 	}
 
@@ -1553,7 +1553,8 @@ func playerCompetitionsHandler(c echo.Context) error {
 	}
 	defer tenantDB.Close()
 
-	if err := authorizePlayer(v.tenantID, v.playerID); err != nil {
+	ctx := context.Background()
+	if err := authorizePlayer(ctx, tenantDB, v.tenantID, v.playerID); err != nil {
 		return err
 	}
 	return competitionsHandler(c, v, tenantDB)
