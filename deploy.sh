@@ -1,11 +1,11 @@
 #!/bin/bash -eux
 
 function deploy () {
-  for src in "$(find /home/isucon/webapp/all -type f)"; do
+  for src in `find /home/isucon/webapp/all -type f`; do
     dest="$(echo $src | sed "s/\/home\/isucon\/webapp\/all//")"
-    sudo cp $src $dest 
+    sudo cp $src $dest
   done
-  for src in "$(find /home/isucon/webapp/$HOSTNAME -type f)"; do
+  for src in `find /home/isucon/webapp/$HOSTNAME -type f`; do
     dest=$(echo $src | sed "s/\/home\/isucon\/webapp\/$HOSTNAME//")
     sudo cp $src $dest
   done
@@ -17,7 +17,7 @@ function deploy () {
   sudo systemctl restart isuports.service
 
   sudo sysctl -p /etc/sysctl.d/99-isucon.conf
-  
+
   # refresh
   source /home/isucon/webapp/deploy.sh
 }
