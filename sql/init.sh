@@ -25,4 +25,5 @@ for ((i=0 ; i < 140 ; i++)); do
 			--host "$ISUCON_DB_HOST" \
 			--port "$ISUCON_DB_PORT" \
 			"$ISUCON_DB_NAME" < ../../initial_data/$i.sql
+	echo $i
 done
