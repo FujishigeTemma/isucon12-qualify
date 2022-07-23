@@ -687,15 +687,18 @@ func tenantsBillingHandler(c echo.Context) error {
 	//   を合計したものを
 	// テナントの課金とする
 	ts := []TenantRow{}
-	if err := adminDB.SelectContext(ctx, &ts, "SELECT * FROM tenant ORDER BY id DESC"); err != nil {
+	var err error
+	if beforeID != 0 {
+		err = adminDB.SelectContext(ctx, &ts, "SELECT * FROM tenant WHERE id < ? ORDER BY id DESC LIMIT 10", beforeID)
+	} else {
+		err = adminDB.SelectContext(ctx, &ts, "SELECT * FROM tenant ORDER BY id DESC LIMIT 10")
+	}
+	if err != nil {
 		return fmt.Errorf("error Select tenant: %w", err)
 	}
+
 	tenantBillings := make([]TenantWithBilling, 0, len(ts))
-	// TODO: N+1
 	for _, t := range ts {
-		if beforeID != 0 && beforeID <= t.ID {
-			continue
-		}
 		err := func(t TenantRow) error {
 			tb := TenantWithBilling{
 				ID:          strconv.FormatInt(t.ID, 10),
@@ -728,9 +731,6 @@ func tenantsBillingHandler(c echo.Context) error {
 		}(t)
 		if err != nil {
 			return err
-		}
-		if len(tenantBillings) >= 10 {
-			break
 		}
 	}
 	return c.JSON(http.StatusOK, SuccessResult{
