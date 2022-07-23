@@ -401,13 +401,20 @@ var localPlayerCacheForAuth = cmap.New[bool]()
 
 // 参加者を認可する
 // 参加者向けAPIで呼ばれる
-func authorizePlayer(tenantID int64, id string) error {
+func authorizePlayer(ctx context.Context, tenantDB dbOrTx, tenantID int64, id string) error {
 	isDisqualified, ok := localPlayerCacheForAuth.Get(string(tenantID) + id)
 	if !ok {
-		//if errors.Is(err, sql.ErrNoRows) {
-		return echo.NewHTTPError(http.StatusUnauthorized, "player not found")
-		//}
-		//return fmt.Errorf("error retrievePlayer from viewer: %w", err)
+		player, err := retrievePlayer(ctx, tenantDB, id)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return echo.NewHTTPError(http.StatusUnauthorized, "player not found")
+			}
+			return fmt.Errorf("error retrievePlayer from viewer: %w", err)
+		}
+		localPlayerCacheForAuth.Set(string(tenantID)+id, player.IsDisqualified)
+		if player.IsDisqualified {
+			return echo.NewHTTPError(http.StatusForbidden, "player is disqualified")
+		}
 	}
 	if isDisqualified {
 		return echo.NewHTTPError(http.StatusForbidden, "player is disqualified")
