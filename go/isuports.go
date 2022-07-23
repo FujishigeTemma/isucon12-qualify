@@ -27,8 +27,6 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
-
-	"github.com/kaz/pprotein/integration/standalone"
 )
 
 const (
@@ -138,11 +136,9 @@ func SetCacheControlPrivate(next echo.HandlerFunc) echo.HandlerFunc {
 
 // Run は cmd/isuports/main.go から呼ばれるエントリーポイントです
 func Run() {
-	go standalone.Integrate(":8888")
-
 	e := echo.New()
-	e.Debug = true
-	e.Logger.SetLevel(log.DEBUG)
+	e.Debug = false
+	e.Logger.SetLevel(log.OFF)
 
 	var (
 		sqlLogger io.Closer
@@ -158,7 +154,6 @@ func Run() {
 	}
 	defer sqlLogger.Close()
 
-	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(SetCacheControlPrivate)
 
@@ -1699,10 +1694,5 @@ func initializeHandler(c echo.Context) error {
 		Lang: "go",
 	}
 
-	go func() {
-		if _, err := http.Get("http://localhost:9000/api/group/collect"); err != nil {
-			log.Printf("failed to communicate with pprotein: %v", err)
-		}
-	}()
 	return c.JSON(http.StatusOK, SuccessResult{Status: true, Data: res})
 }
