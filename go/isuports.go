@@ -1415,7 +1415,7 @@ func competitionRankingHandler(c echo.Context) error {
 
 	selectPlayerSql, params, err := sqlx.In(selectPlayerSql, playerIDs)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("error Select player in err: %v", err)
 	}
 
 	prs := []PlayerRow{}
