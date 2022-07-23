@@ -1,26 +1,28 @@
-DROP TABLE IF EXISTS competition;
-DROP TABLE IF EXISTS player;
-DROP TABLE IF EXISTS player_score;
+USE `isuports`;
 
-CREATE TABLE competition (
+DROP TABLE IF EXISTS `competition`;
+DROP TABLE IF EXISTS `player`;
+DROP TABLE IF EXISTS `player_score`;
+
+CREATE TABLE `competition` (
   id VARCHAR(255) NOT NULL PRIMARY KEY,
   tenant_id BIGINT NOT NULL,
   title TEXT NOT NULL,
   finished_at BIGINT NULL,
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4;
 
-CREATE TABLE player (
+CREATE TABLE `player` (
   id VARCHAR(255) NOT NULL PRIMARY KEY,
   tenant_id BIGINT NOT NULL,
   display_name TEXT NOT NULL,
   is_disqualified BOOLEAN NOT NULL,
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4;
 
-CREATE TABLE player_score (
+CREATE TABLE `player_score` (
   id VARCHAR(255) NOT NULL PRIMARY KEY,
   tenant_id BIGINT NOT NULL,
   player_id VARCHAR(255) NOT NULL,
@@ -29,4 +31,4 @@ CREATE TABLE player_score (
   row_num BIGINT NOT NULL,
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4;
