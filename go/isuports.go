@@ -1409,7 +1409,7 @@ func competitionRankingHandler(c echo.Context) error {
 
 	selectPlayerSql := `SELECT * FROM player WHERE id IN (?)`
 
-	selectPlayerSql, params, err := sqlx.In(selectPlayerSql, []int{1, 2, 3, 4, 5})
+	selectPlayerSql, params, err := sqlx.In(selectPlayerSql, playerIDs)
 	if err != nil {
 		log.Fatal(err)
 	}
