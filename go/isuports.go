@@ -689,7 +689,7 @@ func tenantsBillingHandler(c echo.Context) error {
 	ts := []TenantRow{}
 	var err error
 	if beforeID != 0 {
-		err = adminDB.SelectContext(ctx, &ts, "SELECT * FROM tenant WHERE id <= ? ORDER BY id DESC LIMIT 10", beforeID)
+		err = adminDB.SelectContext(ctx, &ts, "SELECT * FROM tenant WHERE id < ? ORDER BY id DESC LIMIT 10", beforeID)
 	} else {
 		err = adminDB.SelectContext(ctx, &ts, "SELECT * FROM tenant ORDER BY id DESC LIMIT 10")
 	}
