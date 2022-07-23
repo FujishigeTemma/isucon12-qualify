@@ -77,3 +77,4 @@ max_binlog_size   = 100M
 # binlog_do_db		= include_database_name
 # binlog_ignore_db	= include_database_name
 wait_timeout = 180
+net_read_timeout = 180
