@@ -666,6 +666,7 @@ func tenantsBillingHandler(c echo.Context) error {
 		return fmt.Errorf("error Select tenant: %w", err)
 	}
 	tenantBillings := make([]TenantWithBilling, 0, len(ts))
+	// TODO: N+1
 	for _, t := range ts {
 		if beforeID != 0 && beforeID <= t.ID {
 			continue
@@ -796,6 +797,7 @@ func playersAddHandler(c echo.Context) error {
 	displayNames := params["display_name[]"]
 
 	pds := make([]PlayerDetail, 0, len(displayNames))
+	// TODO: N+1
 	for _, displayName := range displayNames {
 		id, err := dispenseID(ctx)
 		if err != nil {
@@ -1110,6 +1112,7 @@ func competitionScoreHandler(c echo.Context) error {
 	); err != nil {
 		return fmt.Errorf("error Delete player_score: tenantID=%d, competitionID=%s, %w", v.tenantID, competitionID, err)
 	}
+	// TODO: N+1
 	for _, ps := range playerScoreRows {
 		if _, err := tenantDB.NamedExecContext(
 			ctx,
@@ -1163,6 +1166,7 @@ func billingHandler(c echo.Context) error {
 		return fmt.Errorf("error Select competition: %w", err)
 	}
 	tbrs := make([]BillingReport, 0, len(cs))
+	// TODO: N+1
 	for _, comp := range cs {
 		report, err := billingReportByCompetition(ctx, tenantDB, v.tenantID, comp.ID)
 		if err != nil {
@@ -1242,6 +1246,7 @@ func playerHandler(c echo.Context) error {
 	}
 	defer fl.Close()
 	pss := make([]PlayerScoreRow, 0, len(cs))
+	// TODO: N+1
 	for _, c := range cs {
 		ps := PlayerScoreRow{}
 		if err := tenantDB.GetContext(
@@ -1263,6 +1268,7 @@ func playerHandler(c echo.Context) error {
 	}
 
 	psds := make([]PlayerScoreDetail, 0, len(pss))
+	// TODO: N+1
 	for _, ps := range pss {
 		comp, err := retrieveCompetition(ctx, tenantDB, ps.CompetitionID)
 		if err != nil {
@@ -1381,6 +1387,7 @@ func competitionRankingHandler(c echo.Context) error {
 	}
 	ranks := make([]CompetitionRank, 0, len(pss))
 	scoredPlayerSet := make(map[string]struct{}, len(pss))
+	// TODO: N+1
 	for _, ps := range pss {
 		// player_scoreが同一player_id内ではrow_numの降順でソートされているので
 		// 現れたのが2回目以降のplayer_idはより大きいrow_numでスコアが出ているとみなせる
