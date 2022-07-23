@@ -5,7 +5,7 @@ cd `dirname $0`
 
 # SQLiteのデータベースの書きかえ
 
-for ((i=1 ; i < 140 ; i++)); do
+for ((i=1 ; i < 101 ; i++)); do
 	echo running: $i
-  sqlite3 ../tenant_db/$i.db < ./tenant/override.sql
+  sqlite3 ../initial_data/$i.db < ./tenant/override.sql
 done
